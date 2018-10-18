@@ -11,7 +11,7 @@ from array import array
 ROOT.gROOT.SetBatch(True)
 #ROOT.gStyle.SetErrorX(0)
 ROOT.gErrorIgnoreLevel = ROOT.kWarning
-import plotTools
+import PlotTools
 
 def get(rootFile, path):
     obj = rootFile.Get(path)
@@ -469,9 +469,9 @@ def plot(sampleDictionary, plotParameters,debug=False):
 
             #for differential distributions in bottom pad
             if "signal" in stackRatio:
-                plotTools.dN_N(stacked.GetStack().Last(), True,  stackRatio.replace("signal",""), rPad, rMin, rMax)
+                PlotTools.dN_N(stacked.GetStack().Last(), True,  stackRatio.replace("signal",""), rPad, rMin, rMax)
             if "bkgd"   in stackRatio:
-                plotTools.dN_N(stacked.GetStack().Last(), False, stackRatio.replace("bkgd"  ,""), rPad, rMin, rMax)
+                PlotTools.dN_N(stacked.GetStack().Last(), False, stackRatio.replace("bkgd"  ,""), rPad, rMin, rMax)
 
         for f in sampleDictionary:
             for p in sampleDictionary[f]:
@@ -491,9 +491,9 @@ def plot(sampleDictionary, plotParameters,debug=False):
 
                     #differential distributions
                     if "signal" in histRatio:
-                        plotTools.dN_N(hists[f][p], True,  histRatio.replace("signal",""), rPad, rMin, rMax)
+                        PlotTools.dN_N(hists[f][p], True,  histRatio.replace("signal",""), rPad, rMin, rMax)
                     if "bkgd"   in histRatio:
-                        plotTools.dN_N(hists[f][p], False, histRatio.replace("bkgd"  ,""), rPad, rMin, rMax)
+                        PlotTools.dN_N(hists[f][p], False, histRatio.replace("bkgd"  ,""), rPad, rMin, rMax)
 
         #draw ratios on rPad
         denomColors = False
@@ -515,7 +515,7 @@ def plot(sampleDictionary, plotParameters,debug=False):
                     if not th2Ratio:
                         ratioErrors = plotParameters["ratioErrors"] if "ratioErrors" in plotParameters else True
                         doSignificance = True if "significance" in plotParameters["ratio"] else False
-                        rErrors = plotTools.ratio(rPad, numer, denom, rMin, rMax, rTitle, rColor, lColor, ratioTObjects, ratioErrors, doSignificance,plotParameters)
+                        rErrors = PlotTools.ratio(rPad, numer, denom, rMin, rMax, rTitle, rColor, lColor, ratioTObjects, ratioErrors, doSignificance,plotParameters)
                     else:
                         hPad.cd()
                         if "ratio" in plotParameters:
