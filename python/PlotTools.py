@@ -595,46 +595,7 @@ def plot(sampleDictionary, plotParameters,debug=False):
         if debug: print "legend.Draw()"
         legend.Draw()
 
-    # watermarks
-    xlogo = 0.29 if "xlogo" not in plotParameters else plotParameters["xlogo"]
-    ylogo = 0.88 if "ylogo" not in plotParameters else plotParameters["ylogo"]
-    slogo = 0.06 if "slogo" not in plotParameters else plotParameters["slogo"]
-    logo  = ROOT.TLatex(xlogo,      ylogo, "CMS" if "logo" not in plotParameters else plotParameters["logo"])
-    watermarks = [logo]
-    statusOffset=0.135 if "statusOffset" not in plotParameters else plotParameters["statusOffset"]
-    status = ROOT.TLatex(xlogo+statusOffset,ylogo, plotParameters["status"] if "status" in plotParameters else "")
-    
-    if "smallStatus" in plotParameters:
-        i=1
-        for word in plotParameters["smallStatus"].split():
-            watermarks.append(ROOT.TLatex(xlogo,ylogo-slogo*i,word))
-            i+=1
-
-    xlumi  = xlogo        if "xlumi" not in plotParameters else plotParameters["xlumi"]
-    ylumi  = ylogo-slogo if "ylumi" not in plotParameters else plotParameters["ylumi"]
-    if "region" in plotParameters:
-        regionText = "Resolved"+(" "+plotParameters["region"]+" Region, "+plotParameters["lumi"][0] if plotParameters["region"] else ", "+plotParameters["lumi"][0])
-        hh4b   = ROOT.TLatex(xlumi, ylumi-slogo, regionText)
-        watermarks.append(hh4b)
-    elif "lumi" in plotParameters:
-        lumiText = "Resolved, "+plotParameters["lumi"][0] if plotParameters["lumi"][0] else "Resolved"
-        hh4b   = ROOT.TLatex(xlumi, ylumi-slogo, lumiText)
-        watermarks.append(hh4b)
-
-    if "lumi" in plotParameters:
-        lumiText = "#sqrt{s} = 13 TeV, "+plotParameters["lumi"][1] if plotParameters["lumi"][1] else "#sqrt{s} = 13 TeV"
-        lumi = ROOT.TLatex(xlumi, ylumi, lumiText)#+" "+plotParameters["lumi"][1])
-        watermarks.append(lumi)
-
-    # KS, chi2 FIXME
-    if "chi2" in plotParameters:
-        (chi2,ndf)=pearsonChi2(hists[f_data][p_data],stacked.GetStack().Last(),binWidth)
-        hPad.cd()
-        chi2text = ROOT.TLatex(xlogo, ylogo-3*slogo, "#chi^{2}/NDF = "+str(int(chi2*100)/100.)+"/"+str(ndf)+" = "+(str(int(chi2/ndf*100)/100.)) if ndf else "NaN")
-        watermarks.append(chi2text)
-
-
-    # draw watermarks
+    # Text
     hPad.cd()
     if "box" in plotParameters: 
         box = ROOT.TBox(plotParameters["box"][0],plotParameters["box"][1],plotParameters["box"][2],plotParameters["box"][3])
@@ -643,27 +604,28 @@ def plot(sampleDictionary, plotParameters,debug=False):
         box.SetFillStyle(1001)
         if debug: print """box.Draw("same l")"""
         box.Draw("same l")
-    wmNum = 0
-    logoSize  = plotParameters["logoSize"] if "logoSize" in plotParameters else 27
-    statusSize = plotParameters["statusSize"] if "statusSize" in plotParameters else 19
-    for wm in watermarks:
-        wm.SetTextAlign(11)
-        if wmNum == 0:
-            wm.SetTextSize(logoSize)
-            wm.SetTextFont(73)
-            status.SetTextAlign(11)
-            status.SetTextSize(logoSize)
-            status.SetTextFont(43)
-            status.SetNDC()
-            if debug: print "status.Draw()"
-            status.Draw()
-        else:
-            wm.SetTextSize(statusSize)
-            wm.SetTextFont(43)
-        wmNum+=1
-        wm.SetNDC()
-        if debug: print "wm.Draw()"
-        wm.Draw()
+
+    xLogo = 0.29 if "xLogo" not in plotParameters else plotParameters["xLogo"]
+    yLogo = 0.88 if "yLogo" not in plotParameters else plotParameters["yLogo"]
+    Logo  = ROOT.TLatex(xLogo, yLogo, plotParameters["Logo"])
+    Logo.SetTextAlign(11)
+    Logo.SetNDC()
+    Logo.Draw()
+
+    xLumi = xLogo        if "xLumi" not in plotParameters else plotParameters["xLumi"]
+    yLumi = yLogo - 0.06 if "yLumi" not in plotParameters else plotParameters["yLumi"]
+    Lumi  = ROOT.TLatex(xLumi, yLumi, plotParameters["Lumi"])
+    Lumi.SetTextAlign(11)
+    Lumi.SetNDC()
+    Lumi.Draw()
+
+    xSelection = xLogo        if "xSelection" not in plotParameters else plotParameters["xSelection"]
+    ySelection = yLumi - 0.06 if "ySelection" not in plotParameters else plotParameters["ySelection"]
+    Selection  = ROOT.TLatex(xSelection, ySelection, plotParameters["Selection"])
+    Selection.SetTextAlign(11)
+    Selection.SetNDC()
+    Selection.Draw()
+
 
     if "drawLines" in plotParameters:
         tline = ROOT.TLine()
