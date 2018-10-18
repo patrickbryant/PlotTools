@@ -605,26 +605,30 @@ def plot(sampleDictionary, plotParameters,debug=False):
         if debug: print """box.Draw("same l")"""
         box.Draw("same l")
 
-    xLogo = 0.29 if "xLogo" not in plotParameters else plotParameters["xLogo"]
-    yLogo = 0.88 if "yLogo" not in plotParameters else plotParameters["yLogo"]
-    Logo  = ROOT.TLatex(xLogo, yLogo, plotParameters["Logo"])
-    Logo.SetTextAlign(11)
-    Logo.SetNDC()
-    Logo.Draw()
+    xLogo = 0.29
+    if "Logo" in plotParameters:
+        xLogo = 0.29 if "xLogo" not in plotParameters else plotParameters["xLogo"]
+        yLogo = 0.88 if "yLogo" not in plotParameters else plotParameters["yLogo"]
+        Logo  = ROOT.TLatex(xLogo, yLogo, plotParameters["Logo"])
+        Logo.SetTextAlign(11)
+        Logo.SetNDC()
+        Logo.Draw()
 
-    xLumi = xLogo        if "xLumi" not in plotParameters else plotParameters["xLumi"]
-    yLumi = yLogo - 0.06 if "yLumi" not in plotParameters else plotParameters["yLumi"]
-    Lumi  = ROOT.TLatex(xLumi, yLumi, plotParameters["Lumi"])
-    Lumi.SetTextAlign(11)
-    Lumi.SetNDC()
-    Lumi.Draw()
+    if "Lumi" in plotParameters:
+        xLumi = xLogo        if "xLumi" not in plotParameters else plotParameters["xLumi"]
+        yLumi = yLogo - 0.06 if "yLumi" not in plotParameters else plotParameters["yLumi"]
+        Lumi  = ROOT.TLatex(xLumi, yLumi, plotParameters["Lumi"])
+        Lumi.SetTextAlign(11)
+        Lumi.SetNDC()
+        Lumi.Draw()
 
-    xSelection = xLogo        if "xSelection" not in plotParameters else plotParameters["xSelection"]
-    ySelection = yLumi - 0.06 if "ySelection" not in plotParameters else plotParameters["ySelection"]
-    Selection  = ROOT.TLatex(xSelection, ySelection, plotParameters["Selection"])
-    Selection.SetTextAlign(11)
-    Selection.SetNDC()
-    Selection.Draw()
+    if "Selection" in plotParameters:
+        xSelection = xLogo        if "xSelection" not in plotParameters else plotParameters["xSelection"]
+        ySelection = yLumi - 0.06 if "ySelection" not in plotParameters else plotParameters["ySelection"]
+        Selection  = ROOT.TLatex(xSelection, ySelection, plotParameters["Selection"])
+        Selection.SetTextAlign(11)
+        Selection.SetNDC()
+        Selection.Draw()
 
 
     if "drawLines" in plotParameters:
@@ -1153,8 +1157,8 @@ def SetYaxisRange(histList,yMax,yMin,logY,ratio, debug=False):
         maximum = maximum*(1.2  if ratio else 1.0)
     else:
         maximum = max([hist.GetMaximum() for hist in histList])
-        maximum = maximum*(20.0 if logY  else 1.3)
-        maximum = maximum*(1.2  if ratio else 1.0)
+        maximum = maximum*(20.0 if logY  else 1.1)
+        maximum = maximum*(1.1  if ratio else 1.0)
         minimum = max([hist.GetMinimum() for hist in histList])
         minimum = (abs(minimum/2) if logY else 0)
     if not minimum and logY:

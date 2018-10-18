@@ -7,8 +7,38 @@ import PlotTools
 #Use ordered dictionaries (collections library) because they allow you to specify the order in which to draw hists naturally
 import collections
 
+###############
+## As a first example let's make a super simple plot of two hists and their ratio
+
 #First define the list of samples. Is a dictionary where the key is the file path/name and the 
 #value is a dictionary where the keys are TObjects in th file and the values are dictionaris with parameters for the corresponding TObject.
+samples=collections.OrderedDict()
+samples["RootFiles/TestFile.root"] = collections.OrderedDict()
+
+samples["RootFiles/TestFile.root"]["data_hh_v"] = {"label"    : "Data",
+                                                   "ratio"    : "numer A",
+                                                   "isData"   : True,
+                                                   "color"    : "ROOT.kBlack"}
+
+samples["RootFiles/TestFile.root"]["total_hh_v"] = {"label"    : "Model",
+                                                    "ratio"    : "denom A",
+                                                    "color"    : "ROOT.kRed"}
+
+#define global plot parameters which are not specific to a given input histogram to the final pdf
+parameters = {"ratio"     : True,
+              "rTitle"    : "Data / Bkgd",
+              "xTitle"    : "m_{HH} [GeV]",
+              "yTitle"    : "Events / Bin",
+              "outputDir" : "",
+              "outputName": "TestPlotSimple",
+}
+
+PlotTools.plot(samples, parameters)
+
+
+###############
+## Now spice it up a little
+
 samples=collections.OrderedDict()
 samples["RootFiles/TestFile.root"] = collections.OrderedDict()
 
@@ -84,7 +114,7 @@ samples["RootFiles/TestFile.root"]["s_hh_m280_v"] = {"label"    : "Scalar (280 G
                                                      "legend"   : 6}
 
 
-#define global plot parameters which are not specific to a given input histogram to the final pdf
+
 parameters = {"ratio"     : True,
               "xLogo"     : 0.20,
               "yLogo"     : 0.85,
