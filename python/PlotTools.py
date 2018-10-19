@@ -277,6 +277,8 @@ def plot(sampleDictionary, plotParameters,debug=False):
                 setStyle(hists[f][p],ratio,plotParameters)
                 if debug: print "Hist:",h.ljust(40),str(hists[f][p]).rjust(30)
                 if debug: print "     nEntries =",nEntries
+            #if "TGraph" in str(hists[f][p]):
+            #    setStyle(hists[f][p],ratio,plotParameters)
 
                 #titles,log,max,min
             hists[f][p].SetTitle(plotParameters["title"] if "title" in plotParameters else "")
@@ -369,12 +371,12 @@ def plot(sampleDictionary, plotParameters,debug=False):
                     if sampleDictionary[f][p]["pad"] == "rPad":
                         ratioTObjects.append(hists[f][p])
                     else:
-                        if debug: print "hists["+f+"]["+p+"].Draw("+same+drawOptions+")"
-                        hists[f][p].Draw(same+drawOptions)
+                        if debug: print "hists["+f+"]["+p+"].Draw("+drawOptions+")"
+                        hists[f][p].Draw(drawOptions)
                         same="SAME "
                 else:
-                    if debug: print "hists["+f+"]["+p+"].Draw("+same+drawOptions+")"
-                    hists[f][p].Draw(same+drawOptions)
+                    if debug: print "hists["+f+"]["+p+"].Draw("+drawOptions+")"
+                    hists[f][p].Draw(drawOptions)
                     same="SAME "
 
     if f_data: 
