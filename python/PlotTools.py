@@ -7,6 +7,7 @@ import os
 import sys
 import random
 import collections
+import json
 from array import array
 ROOT.gROOT.SetBatch(True)
 #ROOT.gStyle.SetErrorX(0)
@@ -26,6 +27,10 @@ def get(rootFile, path):
 
 #  Make the plot
 def plot(sampleDictionary, plotParameters,debug=False):
+    # with open('log.json', 'w') as log:
+    #     dictionaries = [sampleDictionary, plotParameters]
+    #     log.write(json.dumps(dictionaries))
+    #     log.close()
     same=""
     if debug: print
     if debug: print "------------------------------------------------------------------------------"
@@ -71,6 +76,8 @@ def plot(sampleDictionary, plotParameters,debug=False):
 
 #    global legend, watermarks, canv
     ROOT.gStyle.SetOptStat(0)
+    if "fitStats"  in plotParameters: ROOT.gStyle.SetOptFit( plotParameters["fitStats"])
+    if "showStats" in plotParameters: ROOT.gStyle.SetOptStat(plotParameters["showStats"])
     #
     # Make canvas and then pads for hist (and ratio if applicable)
     #
@@ -217,7 +224,7 @@ def plot(sampleDictionary, plotParameters,debug=False):
                     if isinstance(rebin,list): 
                         varBins = True
                         (hists[f][p], binWidth) = do_variable_rebinning(hists[f][p], rebin)
-                        hists[f][p].GetYaxis().SetTitle("Events / "+str(int(binWidth))+" GeV")
+                        hists[f][p].GetYaxis().SetTitle(plotParameters["yTitle"].replace("Bin",str(int(binWidth))+" GeV"))
                         setStyle(hists[f][p],ratio,plotParameters)
                         x_min = rebin[0]
                         x_max = rebin[-1]
@@ -282,6 +289,7 @@ def plot(sampleDictionary, plotParameters,debug=False):
 
                 #titles,log,max,min
             hists[f][p].SetTitle(plotParameters["title"] if "title" in plotParameters else "")
+            if "titleOffset" in plotParameters: hists[f][p].SetTitleOffset(plotParameters["titleOffset"])
             if "xTitle" in plotParameters: hists[f][p].GetXaxis().SetTitle(plotParameters["xTitle"])
             if "yTitle" in plotParameters and not varBins: hists[f][p].GetYaxis().SetTitle(plotParameters["yTitle"])
             if "zTitle" in plotParameters: hists[f][p].GetZaxis().SetTitle(plotParameters["zTitle"])
@@ -545,6 +553,7 @@ def plot(sampleDictionary, plotParameters,debug=False):
     xleg = [0.65, 0.900] if "xleg" not in plotParameters else plotParameters["xleg"]
     yleg = [0.60, 0.920] if "yleg" not in plotParameters else plotParameters["yleg"]
     legend = ROOT.TLegend(xleg[0], yleg[0], xleg[1], yleg[1])
+    legend.SetTextAlign(12)
     drawLegend = False
     drawOrder = {}
     legendEntries=[]
@@ -1140,8 +1149,6 @@ def setStyle(h,ratio=False,plotParameters={}):
 
     if "yTickLength" in plotParameters: h.GetYaxis().SetTickLength(plotParameters["yTickLength"])
     
-    if "fitStats" in plotParameters: ROOT.gStyle.SetOptFit(plotParameters["fitStats"])
-
     
 def SetYaxisRange(histList,yMax,yMin,logY,ratio, debug=False):
     if yMax and yMin:
@@ -1211,4 +1218,3 @@ def divideByBinWidth(hist,plotParameters):
     
         
 
-    
