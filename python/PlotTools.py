@@ -91,36 +91,41 @@ def plot(sampleDictionary, plotParameters,debug=False):
     else:
         ROOT.TGaxis.SetMaxDigits(6)
 
+    ratioOnly = plotParameters["ratioOnly"] if "ratioOnly" in plotParameters else False
+    ratio = False
     if "ratio" in plotParameters:
         plotParameters["ratio"] = str(plotParameters["ratio"])
         if "2d" in plotParameters["ratio"]: 
                 ratio = False
         elif plotParameters["ratio"]:
-            if plotParameters["ratio"]:
-                ratio = True
-                canvasSize[1] = canvasSize[1]*1.2 #add area at bottom of canvas for ratio plot
-            else:
-                ratio = False
+            ratio = True
+            if not ratioOnly: canvasSize[1] = canvasSize[1]*1.2 #add area at bottom of canvas for ratio plot
             rMax   = plotParameters["rMax"  ] if "rMax"   in plotParameters else 2
             rMin   = plotParameters["rMin"  ] if "rMin"   in plotParameters else 0
             rColor = plotParameters["rColor"] if "rColor" in plotParameters else "ROOT.kGray+2"
             rTitle = plotParameters["rTitle"] if "rTitle" in plotParameters else "rTitle"
-    else:
-        ratio = False
 
     canvas = ROOT.TCanvas("canvas", "canvas", int(canvasSize[0]), int(canvasSize[1]))
     if ratio:
+        if not ratioOnly:
+            rPad = ROOT.TPad("ratio", "ratio", 0, 0.0, 1, 0.3)
+            ROOT.gPad.SetTicks(1,1)
+            rPad.SetBottomMargin(0.30)
+            rPad.SetTopMargin(0.035)
+            rPad.SetRightMargin(0.03)
+            rPad.SetFillStyle(0)
+            rPad.Draw()
+        else:
+            rPad = ROOT.TPad("ratio",  "ratio",  0, 0.0, 1, 1.0)
+            ROOT.gPad.SetTicks(1,1)
+            rPad.SetTopMargin(0.05)
+            rPad.SetRightMargin(0.03)
+            rPad.Draw()
+
         hPad = ROOT.TPad("hist",  "hist",  0, 0.3, 1, 1.0)
         ROOT.gPad.SetTicks(1,1)
-        rPad = ROOT.TPad("ratio", "ratio", 0, 0.0, 1, 0.3)
-        ROOT.gPad.SetTicks(1,1)
-        rPad.SetBottomMargin(0.30)
-        rPad.SetTopMargin(0.035)
-        rPad.SetRightMargin(0.03)
-        rPad.SetFillStyle(0)
-        rPad.Draw()
         hPad.SetBottomMargin(0.02)
-        hPad.SetTopMargin(0.04)
+        hPad.SetTopMargin(0.05)
         hPad.SetRightMargin(0.03)
         hPad.Draw()
     else:
@@ -133,33 +138,27 @@ def plot(sampleDictionary, plotParameters,debug=False):
     ROOT.gStyle.SetPadTickX(1)
     ROOT.gStyle.SetPadTickY(1)
     ROOT.gROOT.ForceStyle()
-    if   "logY" in plotParameters: 
-        logY = plotParameters["logY"]
-        hPad.SetLogy(plotParameters["logY"])
-    else:
-        logY = False
 
-    if   "rLogY" in plotParameters: 
-        rLogY = plotParameters["rLogY"]
-        rPad.SetLogy(plotParameters["rLogY"])
-    else:
-        rLogY = False
+    logX = plotParameters["logX"] if "logX" in plotParameters else False
+    hPad.SetLogx(logX)
+    if ratio: rPad.SetLogx(logX)
+    logY = plotParameters["logY"] if "logY" in plotParameters else False
+    hPad.SetLogy(logY)
+    logZ = plotParameters["logZ"] if "logZ" in plotParameters else False
+    hPad.SetLogz(logZ)
+    rLogY = plotParameters["rLogY"] if "rLogY" in plotParameters else False
+    if ratio: rPad.SetLogy(rLogY)
 
     #
     # Initialize some plotParameters
     #
-    if "rebin" in plotParameters:
-        rebin = plotParameters["rebin"]
-        rebinX = rebin
-        rebinY = rebin
-    elif "rebinX" in plotParameters or "rebinY" in plotParameters:
+    rebin  = plotParameters["rebin"] if "rebin" in plotParameters else None
+    rebinX = rebin
+    rebinY = rebin
+    if "rebinX" in plotParameters or "rebinY" in plotParameters:
         rebin = True
         rebinX = plotParameters["rebinX"] if "rebinX" in plotParameters else 1
         rebinY = plotParameters["rebinY"] if "rebinY" in plotParameters else 1
-    else:
-        rebin = False
-        rebinX = None
-        rebinY = None
 
     if rebin == "smart":
         #find isData hist
@@ -206,7 +205,7 @@ def plot(sampleDictionary, plotParameters,debug=False):
             hists[f][p] = get(Files[f],h)
 
             if "TH2" in str(hists[f][p]):
-                ROOT.gStyle.SetPalette(ROOT.kBird)
+                #ROOT.gStyle.SetPalette(ROOT.kBird)
                 if "ratio" in sampleDictionary[f][p]: th2Ratio=True
 
             if "divideByBinWidth" in plotParameters:
@@ -368,9 +367,10 @@ def plot(sampleDictionary, plotParameters,debug=False):
                 if "zMax" in plotParameters: hists[f][p].SetMaximum(plotParameters["zMax"])
                 if "zMin" in plotParameters: hists[f][p].SetMinimum(plotParameters["zMin"])
                 if not th2Ratio:
-                    if debug: print "hists["+f+"]["+p+"].Draw("+same+drawOptions+")"
-                    hists[f][p].Draw(same+drawOptions)
-                    same="SAME "
+                    if not ratioOnly: 
+                        if debug: print "hists["+f+"]["+p+"].Draw("+same+drawOptions+")"
+                        hists[f][p].Draw(same+drawOptions)
+                        same="SAME "
             else:#function or other ROOT object? Try drawing it..
                 if "xMin" in sampleDictionary[f][p]: 
                     if "xMax" in sampleDictionary[f][p]:
@@ -379,22 +379,25 @@ def plot(sampleDictionary, plotParameters,debug=False):
                     if sampleDictionary[f][p]["pad"] == "rPad":
                         ratioTObjects.append(hists[f][p])
                     else:
+                        if not ratioOnly: 
+                            if debug: print "hists["+f+"]["+p+"].Draw("+drawOptions+")"
+                            hists[f][p].Draw(drawOptions)
+                            same="SAME "
+                else:
+                    if not ratioOnly: 
                         if debug: print "hists["+f+"]["+p+"].Draw("+drawOptions+")"
                         hists[f][p].Draw(drawOptions)
                         same="SAME "
-                else:
-                    if debug: print "hists["+f+"]["+p+"].Draw("+drawOptions+")"
-                    hists[f][p].Draw(drawOptions)
-                    same="SAME "
 
     if f_data: 
         xMax = plotParameters["xMax"] if "xMax" in plotParameters else hists[f][p].GetXaxis().GetXmax()
         xMin = plotParameters["xMin"] if "xMin" in plotParameters else hists[f][p].GetXaxis().GetXmin()
         hists[f_data][p_data].GetXaxis().SetRangeUser(xMin,xMax) 
 
-        if debug: print "hists["+f_data+"]["+p_data+"].Draw("+same+h_data_draw+")"
-        hists[f_data][p_data].Draw(same+h_data_draw)                    
-        same="SAME "
+        if not ratioOnly: 
+            if debug: print "hists["+f_data+"]["+p_data+"].Draw("+same+h_data_draw+")"
+            hists[f_data][p_data].Draw(same+h_data_draw)                    
+            same="SAME "
 
     # normalize stack before setting yaxis range
     if stack:
@@ -420,9 +423,10 @@ def plot(sampleDictionary, plotParameters,debug=False):
 
         if not th2Ratio:
             hPad.cd()
-            if debug: print "stacked.Draw("+same+" "+stackDrawOptions+")"
-            stacked.Draw(same+" "+stackDrawOptions)
-            same="SAME "
+            if not ratioOnly: 
+                if debug: print "stacked.Draw("+same+" "+stackDrawOptions+")"
+                stacked.Draw(same+" "+stackDrawOptions)
+                same="SAME "
             if "stackErrors" in plotParameters: 
                 errors = ROOT.TH1F(stacked.GetStack().Last())
                 errors.SetFillColor(ROOT.kGray+2)
@@ -437,8 +441,9 @@ def plot(sampleDictionary, plotParameters,debug=False):
                 #             systematic = s
                 #             for word in p.split("_"): systematic = systematic.replace(word,"")
                 #             print p,systematic
-                if debug: print """errors.Draw("e2 SAME")"""
-                errors.Draw("e2 SAME")
+                if not ratioOnly: 
+                    if debug: print """errors.Draw("e2 SAME")"""
+                    errors.Draw("e2 SAME")
 
 
     #draw hists that are not data or stacked
@@ -450,20 +455,22 @@ def plot(sampleDictionary, plotParameters,debug=False):
                     if sampleDictionary[f][p]["isData"]:
                         continue
                 drawOptions = sampleDictionary[f][p]["drawOptions"] if "drawOptions" in sampleDictionary[f][p] else "HIST "
-                if debug: print "hists["+f+"]["+p+"].Draw("+drawOptions+same+")"
-                if "HIST P" in drawOptions: hists[f][p].Draw("HIST"+same)
-                same=" SAME "
-                hists[f][p].Draw(drawOptions+same)
+                if not ratioOnly: 
+                    if debug: print "hists["+f+"]["+p+"].Draw("+drawOptions+same+")"
+                    if "HIST P" in drawOptions: hists[f][p].Draw("HIST"+same)
+                    hists[f][p].Draw(drawOptions+same)
+                    same=" SAME "
 
     if f_data: 
         hists[f_data][p_data].SetMarkerStyle(20)
         hists[f_data][p_data].SetMarkerSize(0.7)
         hists[f_data][p_data].SetLineWidth(2 if "lineWidth" not in sampleDictionary[f_data][p_data] else sampleDictionary[f_data][p_data]["lineWidth"])
-        if debug: print "hists["+f_data+"]["+p_data+"].Draw("+same+h_data_draw+")"
-        if debug: print "hists["+f_data+"]["+p_data+"].Draw("+"ex0 axis "+same+")"
-        hists[f_data][p_data].Draw(same+h_data_draw) #HAVE TO DRAW TWICE BECAUSE FUCK ROOT
-        hists[f_data][p_data].Draw("ex0 axis "+same) #HAVE TO DRAW TWICE BECAUSE FUCK ROOT
-        same="SAME "
+        if not ratioOnly:
+            if debug: print "hists["+f_data+"]["+p_data+"].Draw("+same+h_data_draw+")"
+            if debug: print "hists["+f_data+"]["+p_data+"].Draw("+"ex0 axis "+same+")"
+            hists[f_data][p_data].Draw(same+h_data_draw) #HAVE TO DRAW TWICE BECAUSE FUCK ROOT
+            hists[f_data][p_data].Draw("ex0 axis "+same) #HAVE TO DRAW TWICE BECAUSE FUCK ROOT
+            same="SAME "
 
     hPad.RedrawAxis()
     #
@@ -732,6 +739,8 @@ def show_overflow(hist):
         hist.SetBinError  (nbins, newerror)
 
 def ratio(rPad, numer, denom, rMin, rMax, rTitle, rColor, lColor, ratioTObjects=[],ratioErrors=True, doSignificance=False, plotParameters=None):
+    ratioOnly = plotParameters["ratioOnly"] if "ratioOnly" in plotParameters else False
+    logX = plotParameters["logX"] if "logX" in plotParameters else False
     same=""
     numer.GetXaxis().SetLabelSize(0)
     denom.GetXaxis().SetLabelSize(0)
@@ -742,8 +751,9 @@ def ratio(rPad, numer, denom, rMin, rMax, rTitle, rColor, lColor, ratioTObjects=
     numerdenom.SetTitle("")
     denomdenom.SetTitle("")
     
-    numerdenom.GetYaxis().SetNdivisions(503)
-    denomdenom.GetYaxis().SetNdivisions(503)
+    if not ratioOnly:
+        numerdenom.GetYaxis().SetNdivisions(503)
+        denomdenom.GetYaxis().SetNdivisions(503)
 
     numerdenom.SetName(numer.GetName()+"numerdenom"+str(numer))
     denomdenom.SetName(numer.GetName()+"denomdenom"+str(numer))
@@ -762,7 +772,7 @@ def ratio(rPad, numer, denom, rMin, rMax, rTitle, rColor, lColor, ratioTObjects=
 
     nbins = numer.GetNbinsX()
     true_r = {}
-    for bin in xrange(1, nbins+1):
+    for bin in xrange(0, nbins+2):
         x  = ROOT.Double(numer.GetBinCenter(bin))
         nc = numer.GetBinContent(bin)
         dc = denom.GetBinContent(bin)
@@ -796,12 +806,20 @@ def ratio(rPad, numer, denom, rMin, rMax, rTitle, rColor, lColor, ratioTObjects=
 
     setStyle(numerdenom)
     setStyle(denomdenom)
-    numerdenom.GetYaxis().SetLabelOffset(0.015)
-    denomdenom.GetYaxis().SetLabelOffset(0.015)
-    numerdenom.GetYaxis().SetTitleOffset(0.95 if (rMax*100)%100 == 0 else 1.1)
-    denomdenom.GetYaxis().SetTitleOffset(0.95 if (rMax*100)%100 == 0 else 1.1)
-    numerdenom.GetXaxis().SetTitleSize(25)
-    denomdenom.GetXaxis().SetTitleSize(25)
+    if not ratioOnly:
+        numerdenom.GetYaxis().SetLabelOffset(0.015)
+        denomdenom.GetYaxis().SetLabelOffset(0.015)
+        numerdenom.GetYaxis().SetTitleOffset(0.95 if (rMax*100)%100 == 0 else 1.1)
+        denomdenom.GetYaxis().SetTitleOffset(0.95 if (rMax*100)%100 == 0 else 1.1)
+        numerdenom.GetXaxis().SetTitleSize(25)
+        denomdenom.GetXaxis().SetTitleSize(25)
+    if ratioOnly:
+        numerdenom.GetXaxis().SetTitleOffset(1)
+        denomdenom.GetXaxis().SetTitleOffset(1)        
+
+    if logX:
+        numerdenom.GetXaxis().SetLabelOffset(-0.005)
+        denomdenom.GetXaxis().SetLabelOffset(-0.005)
 
     #setStyle(ratio_TGraph)
     #ratio_TGraph.GetYaxis().SetLabelOffset(0.015)
@@ -859,10 +877,11 @@ def ratio(rPad, numer, denom, rMin, rMax, rTitle, rColor, lColor, ratioTObjects=
         x=numerdenom.GetBinCenter(bin)
         if x > xMax or x < xMin: continue
 
-        if r+e<rMin and numer.GetBinContent(bin):
+        if r == -99: continue
+        if r+e<rMin and numer.GetBinContent(bin) > 0:#down arrow
             a.DrawArrow( x,rMin + (rMax-rMin)/5,  x,rMin  , 0.015,"|>")
 
-        elif r-e>rMax:
+        elif r-e>rMax and denom.GetBinContent(bin) > 0:#up arrow
             a.DrawArrow( x,rMax - (rMax-rMin)/5,  x,rMax  , 0.015,"|>")
             
     #ratio_TGraph.SetLineColor(ROOT.kRed)
@@ -960,8 +979,8 @@ def do_variable_rebinning(hist,bins,debug=False):
         newb=newa.FindBin(a.GetBinCenter(b))
         val=newhist.GetBinContent(newb)
         ratio_bin_widths=newa.GetBinWidth(newb)/a.GetBinWidth(b)
-        if ratio_bin_widths != int(ratio_bin_widths): 
-            print ratio_bin_widths,"NOT INTEGER RATIO OF BIN WITDHS!!!"
+        if abs(ratio_bin_widths - int(ratio_bin_widths*1e6)/1.0e6) > 0.001: 
+            print ratio_bin_widths,"NOT INTEGER RATIO OF BIN WITDHS!!!", abs(ratio_bin_widths - int(ratio_bin_widths*1e6)/1.0e6)
             print hist.GetName()
             raw_input()
         val=val+hist.GetBinContent(b)/ratio_bin_widths
@@ -1101,6 +1120,8 @@ def read_mu_qcd_file(inFileName):
 
 
 def setStyle(h,ratio=False,plotParameters={}):
+    ratioOnly = plotParameters["ratioOnly"] if "ratioOnly" in plotParameters else False
+    logX = plotParameters["logX"] if "logX" in plotParameters else False
     h.SetLineWidth(2)
     ROOT.gPad.SetTicks(1,1)
     ROOT.gPad.Update()
@@ -1121,7 +1142,7 @@ def setStyle(h,ratio=False,plotParameters={}):
     h.GetXaxis().SetLabelFont(43)
     h.GetXaxis().SetTitleFont(43)
 
-    if ratio:
+    if ratio and not ratioOnly:
         h.GetXaxis().SetLabelSize(0)
         h.GetXaxis().SetTitleSize(0)
         h.GetXaxis().SetLabelOffset(0.013)
