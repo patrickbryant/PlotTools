@@ -413,7 +413,8 @@ def plot(sampleDictionary, plotParameters,debug=False):
 
     yMin = plotParameters["yMin"] if "yMin" in plotParameters else None
     yMax = plotParameters["yMax"] if "yMax" in plotParameters else None
-    SetYaxisRange(histList,yMax,yMin,logY,ratio)
+    if debug: print "yMin",yMin,"yMax",yMax
+    SetYaxisRange(histList,yMax,yMin,logY,ratio,debug)
 
     # stack up the hists in stack in proper order
     if stack:
@@ -557,10 +558,6 @@ def plot(sampleDictionary, plotParameters,debug=False):
         
 
     # make legend
-    xleg = [0.65, 0.900] if "xleg" not in plotParameters else plotParameters["xleg"]
-    yleg = [0.60, 0.920] if "yleg" not in plotParameters else plotParameters["yleg"]
-    legend = ROOT.TLegend(xleg[0], yleg[0], xleg[1], yleg[1])
-    legend.SetTextAlign(12)
     drawLegend = False
     drawOrder = {}
     legendEntries=[]
@@ -592,6 +589,15 @@ def plot(sampleDictionary, plotParameters,debug=False):
                 #legend.AddEntry(hists[f][p], sampleDictionary[f][p]["label"], legendMark)
                 legendEntries.append([hists[f][p], sampleDictionary[f][p]["label"], legendMark])
                 drawOrder[sampleDictionary[f][p]["legend"] if "legend" in sampleDictionary[f][p] else len(legendEntries)] = len(legendEntries)-1
+
+    nLegend = len(drawOrder.keys())
+    if ("stackErrors" in plotParameters and drawLegend and drawErrors) or (ratio and not th2Ratio and ratioErrors and drawErrors):
+        nLegend += 1
+    
+    xleg = [0.65             , 0.900] if "xleg" not in plotParameters else plotParameters["xleg"]
+    yleg = [0.92-0.06*nLegend, 0.920] if "yleg" not in plotParameters else plotParameters["yleg"]
+    legend = ROOT.TLegend(xleg[0], yleg[0], xleg[1], yleg[1])
+    legend.SetTextAlign(12)
 
     for i in sorted(drawOrder.keys()):
         legend.AddEntry(legendEntries[drawOrder[i]][0],legendEntries[drawOrder[i]][1],legendEntries[drawOrder[i]][2])
@@ -1172,15 +1178,15 @@ def setStyle(h,ratio=False,plotParameters={}):
     
     
 def SetYaxisRange(histList,yMax,yMin,logY,ratio, debug=False):
-    if yMax and yMin:
+    if yMax != None and yMin != None:
         minimum = float(yMin)
         maximum = float(yMax)
         if debug: print "Manually setting range:",minimum,maximum
-    elif yMax:
+    elif yMax != None:
         maximum = float(yMax)
         minimum = max([hist.GetMinimum() for hist in histList])
         minimum = (abs(minimum/2) if logY else 0)
-    elif yMin:
+    elif yMin != None:
         minimum = float(yMin)
         maximum = max([hist.GetMaximum() for hist in histList])
         maximum = maximum*(20.0 if logY  else 1.3)
