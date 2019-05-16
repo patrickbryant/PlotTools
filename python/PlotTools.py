@@ -1143,9 +1143,9 @@ def dN_N(hist,signal,direction,rPad, rMin, rMax):
 
 
 #
-#  Helper function for parsing mu_qcd_file
+#  Helper function for parsing txt files with model parameters
 #
-def read_mu_qcd_file(inFileName):
+def read_parameter_file(inFileName):
     inFile = open(inFileName,"r")
     outputDict = {}
 
