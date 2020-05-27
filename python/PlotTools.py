@@ -89,7 +89,9 @@ def plot(sampleDictionary, plotParameters,debug=False):
     if "maxDigits" in plotParameters:
         ROOT.TGaxis.SetMaxDigits(plotParameters["maxDigits"])
     else:
-        ROOT.TGaxis.SetMaxDigits(6)
+        ROOT.TGaxis.SetMaxDigits(5)
+    ROOT.TGaxis.SetExponentOffset(0.035, -0.078, "y")
+    ROOT.TGaxis.SetExponentOffset(-0.085,0.035,'x')
 
     ratioOnly = plotParameters["ratioOnly"] if "ratioOnly" in plotParameters else False
     ratio = False
@@ -181,12 +183,14 @@ def plot(sampleDictionary, plotParameters,debug=False):
     #
     stackRatio = False
     ratioTObjects=[]
+    otherObjects=[]
     stack = {} # store stack order 
     hists = {}
     systematics = {}
     drawSystematics = False
     drawErrors = plotParameters["errors"] if "errors" in plotParameters else True
     histList = []
+    histListDim = 1
     Files = {}
     f_data = "" #if hist is data, draw it last.
     nObjects = 0
@@ -334,6 +338,8 @@ def plot(sampleDictionary, plotParameters,debug=False):
 
             if "TH" in str(hists[f][p]) or "TF" in str(hists[f][p]):
                 histList.append(hists[f][p])
+                if "TH2" in str(hists[f][p]):
+                    histListDim = 2
             # colors and markers
             if "color" in sampleDictionary[f][p]:
                 hists[f][p].SetLineColor(eval(sampleDictionary[f][p]["color"]))
@@ -353,6 +359,8 @@ def plot(sampleDictionary, plotParameters,debug=False):
             if "fillStyle" in sampleDictionary[f][p]: hists[f][p].SetFillStyle(sampleDictionary[f][p]["fillStyle"])
             if "fillColor" in sampleDictionary[f][p]: hists[f][p].SetFillColor(eval(sampleDictionary[f][p]["fillColor"]))
             if "lineColor" in sampleDictionary[f][p]: hists[f][p].SetLineColor(eval(sampleDictionary[f][p]["lineColor"]))
+            if "zMax" in plotParameters: hists[f][p].SetMaximum(plotParameters["zMax"])
+            if "zMin" in plotParameters: hists[f][p].SetMinimum(plotParameters["zMin"])
             
 
             hPad.cd()
@@ -369,8 +377,6 @@ def plot(sampleDictionary, plotParameters,debug=False):
                         h_data_draw = " ex0 PE "+drawOptions
 
             elif "TH2" in str(hists[f][p]):
-                if "zMax" in plotParameters: hists[f][p].SetMaximum(plotParameters["zMax"])
-                if "zMin" in plotParameters: hists[f][p].SetMinimum(plotParameters["zMin"])
                 if not th2Ratio:
                     if not ratioOnly: 
                         if debug: print "hists["+f+"]["+p+"].Draw("+same+drawOptions+")"
@@ -381,18 +387,19 @@ def plot(sampleDictionary, plotParameters,debug=False):
                     if "xMax" in sampleDictionary[f][p]:
                         hists[f][p].SetRange(sampleDictionary[f][p]["xMin"],sampleDictionary[f][p]["xMax"])
                 if "pad" in sampleDictionary[f][p]:
-                    if sampleDictionary[f][p]["pad"] == "rPad":
+                    if "rPad" in sampleDictionary[f][p]["pad"]:
                         ratioTObjects.append(hists[f][p])
-                    else:
-                        if not ratioOnly: 
-                            if debug: print "hists["+f+"]["+p+"].Draw("+drawOptions+")"
-                            hists[f][p].Draw(drawOptions)
-                            same="SAME "
+                    if not ratioOnly: 
+                        if debug: print "hists["+f+"]["+p+"].Draw("+drawOptions+")"
+                        otherObjects.append({'object':hists[f][p], 'drawOptions':drawOptions})
+                        #hists[f][p].Draw(drawOptions)
+                        #same="SAME "
                 else:
                     if not ratioOnly: 
                         if debug: print "hists["+f+"]["+p+"].Draw("+drawOptions+")"
-                        hists[f][p].Draw(drawOptions)
-                        same="SAME "
+                        otherObjects.append({'object':hists[f][p], 'drawOptions':drawOptions})
+                        #hists[f][p].Draw(drawOptions)
+                        #same="SAME "
 
     if f_data: 
         xMax = plotParameters["xMax"] if "xMax" in plotParameters else hists[f][p].GetXaxis().GetXmax()
@@ -416,23 +423,35 @@ def plot(sampleDictionary, plotParameters,debug=False):
             for i in sorted(stack.keys()): stack[i].Scale(scaleStack)
 
 
-    yMin = plotParameters["yMin"] if "yMin" in plotParameters else None
-    yMax = plotParameters["yMax"] if "yMax" in plotParameters else None
-    if debug: print "yMin",yMin,"yMax",yMax
-    SetYaxisRange(histList,yMax,yMin,logY,ratio,debug)
+    if histListDim == 1:
+        yMin = plotParameters["yMin"] if "yMin" in plotParameters else None
+        yMax = plotParameters["yMax"] if "yMax" in plotParameters else None
+        if debug: print "yMin",yMin,"yMax",yMax
+        SetYaxisRange(histList,yMax,yMin,logY,ratio,debug)
+    else:
+        zMin = plotParameters["zMin"] if "zMin" in plotParameters else None
+        zMax = plotParameters["zMax"] if "zMax" in plotParameters else None
+        if debug: print "zMin",zMin,"zMax",zMax
+        SetYaxisRange(histList,zMax,zMin,logY,ratio,debug)
 
     # stack up the hists in stack in proper order
     if stack:
-        stacked = ROOT.THStack("stack", "stack")
+        stacked = ROOT.THStack("stack", "")
         for i in sorted(stack.keys()):
             stacked.Add(copy.copy(stack[i]), "hist")
 
         if not th2Ratio:
             hPad.cd()
             if not ratioOnly: 
-                if debug: print "stacked.Draw("+same+" "+stackDrawOptions+")"
-                stacked.Draw(same+" "+stackDrawOptions)
-                same="SAME "
+                if histListDim == 2:
+                    if debug: print "stacked.GetStack().Last().Draw("+same+" "+stackDrawOptions+")"
+                    setStyle(stacked.GetStack().Last())
+                    stacked.GetStack().Last().Draw(same+" "+stackDrawOptions)
+                    same="SAME "
+                else:
+                    if debug: print "stacked.Draw("+same+" "+stackDrawOptions+")"
+                    stacked.Draw(same+" "+stackDrawOptions)
+                    same="SAME "
             if "stackErrors" in plotParameters: 
                 errors = ROOT.TH1F(stacked.GetStack().Last())
                 errors.SetFillColor(ROOT.kGray+2)
@@ -466,6 +485,9 @@ def plot(sampleDictionary, plotParameters,debug=False):
                     #if "HIST P" in drawOptions: hists[f][p].Draw("HIST"+same) ## NEED THIS FOR SINGLE BIN ACCEPTANCE PLOTS...
                     hists[f][p].Draw(drawOptions+same)
                     same=" SAME "
+
+    for obj in otherObjects:
+        obj['object'].Draw(obj['drawOptions']+same)
 
     if f_data: 
         hists[f_data][p_data].SetMarkerStyle(20)
@@ -607,6 +629,7 @@ def plot(sampleDictionary, plotParameters,debug=False):
     Y1, Y2 = UserToNDC(hPad, "y", hPad.GetFrame().GetY1()), UserToNDC(hPad, "y", hPad.GetFrame().GetY2())
     dY = Y2 - Y1
     yleg = [Y2 - 0.06*nLegend, Y2 - 0.035] if "yleg" not in plotParameters else plotParameters["yleg"] #default tick length is 0.03
+    yspace = (yleg[1]-yleg[0])/nLegend if nLegend else 1
     #yleg = [0.91-0.05*nLegend, 0.910] if "yleg" not in plotParameters else plotParameters["yleg"]
     legend = ROOT.TLegend(xleg[0], yleg[0], xleg[1], yleg[1])
     if "legendColumns" in plotParameters: legend.SetNColumns(plotParameters["legendColumns"])
@@ -641,6 +664,17 @@ def plot(sampleDictionary, plotParameters,debug=False):
         box.SetFillStyle(1001)
         if debug: print """box.Draw("same l")"""
         box.Draw("same l")
+
+    if "legendSubText" in plotParameters:
+        i = 0
+        legendSubText = []
+        for line in plotParameters["legendSubText"]:
+            i += 1
+            legendSubText.append( ROOT.TLatex(xleg[0], yleg[0]-i*yspace, "#bf{ "+line+"}") )
+            legendSubText[-1].SetTextAlign(11)
+            legendSubText[-1].SetTextSize((1-legend.GetEntrySeparation())*yspace)
+            legendSubText[-1].SetNDC()
+            legendSubText[-1].Draw()
 
     hPad.Update()
     xTitleLeft  = UserToNDC(hPad, "x", hPad.GetFrame().GetX1(), debug)
@@ -739,6 +773,8 @@ def plot(sampleDictionary, plotParameters,debug=False):
         canvas.SaveAs(plotParameters["outputDir"]+plotParameters["outputName"]+".pdf")
         #canvas.SaveAs(plotParameters["outputDir"]+plotParameters["outputName"]+".root")
 
+    return canvas
+
 
 def UserToNDC(pad,axis,u,debug=False):
     if axis == "x": 
@@ -781,7 +817,7 @@ def show_overflow(hist):
         hist.SetBinContent(nbins, newcontent)
         hist.SetBinError  (nbins, newerror)
 
-def ratio(rPad, numer, denom, rMin, rMax, rTitle, rColor, lColor, ratioTObjects=[],ratioErrors=True, doSignificance=False, plotParameters=None):
+def ratio(rPad, numer, denom, rMin, rMax, rTitle, rColor, lColor, ratioTObjects=[],ratioErrors=True, doSignificance=False, plotParameters=None, drawOptions=None):
     ratioOnly = plotParameters["ratioOnly"] if "ratioOnly" in plotParameters else False
     logX = plotParameters["logX"] if "logX" in plotParameters else False
     same=""
@@ -818,9 +854,13 @@ def ratio(rPad, numer, denom, rMin, rMax, rTitle, rColor, lColor, ratioTObjects=
     for bin in xrange(0, nbins+2):
         x  = ROOT.Double(numer.GetBinCenter(bin))
         nc = numer.GetBinContent(bin)
-        dc = denom.GetBinContent(bin)
         ne = numer.GetBinError(bin)
-        de = denom.GetBinError(bin)
+        if "TH" in str(denom):
+            dc = denom.GetBinContent(bin)
+            de = denom.GetBinError(bin)
+        else:
+            dc = denom.Eval(x)
+            de = 0
 
         val_nd = nc/dc if dc else -99
         val_dd = 1.0   if dc else -99
@@ -879,12 +919,16 @@ def ratio(rPad, numer, denom, rMin, rMax, rTitle, rColor, lColor, ratioTObjects=
     denomdenom.SetFillColor(eval(rColor))
     denomdenom.SetFillStyle(3245)
     denomdenom.SetMarkerSize(0.0)
-    if ratioErrors:
+    if ratioErrors and "TH" in str(denom):
         denomdenom.Draw("E2 SAME")
     
     # Fix for error bars when points arent on the ratio
     numerdenom.SetLineColor(lColor)
+    numerdenom.SetMarkerColor(lColor)
+    # if "TH" in str(denom):
     numerdenom.Draw("x0 P E0 SAME" if not doSignificance else "HIST SAME")
+    # else:
+    #    numerdenom.Draw("HIST SAME")
 
     oldSize = numerdenom.GetMarkerSize()
     # numerdenom.SetMarkerSize(0)
@@ -894,7 +938,7 @@ def ratio(rPad, numer, denom, rMin, rMax, rTitle, rColor, lColor, ratioTObjects=
     numerdenom.SetMarkerStyle(20)
     numerdenom.SetMarkerSize(0.5)
         #numerdenom.SetMarkerStyle(7)
-    if not doSignificance: 
+    if not doSignificance:# and "TH" in str(denom): 
         numerdenom.DrawCopy("x0 SAME PE")    
 
     for obj in ratioTObjects: 
