@@ -972,9 +972,9 @@ def ratio(rPad, numer, denom, rMin, rMax, rTitle, rColor, lColor, ratioTObjects=
             nb = numer.GetBinContent(bin)
 
         if "TF" in str(denom):
-            db = numer.Eval(x)
+            db = denom.Eval(x)
         else:
-            db = numer.GetBinContent(bin)
+            db = denom.GetBinContent(bin)
 
         if r+e<rMin and nb > 0:#down arrow
             a.DrawArrow( x,rMin + (rMax-rMin)/5,  x,rMin  , 0.015,"|>")
