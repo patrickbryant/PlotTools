@@ -965,10 +965,21 @@ def ratio(rPad, numer, denom, rMin, rMax, rTitle, rColor, lColor, ratioTObjects=
         if x > xMax or x < xMin: continue
 
         if r == -99: continue
-        if r+e<rMin and numer.GetBinContent(bin) > 0:#down arrow
+
+        if "TF" in str(numer):
+            nb = numer.Eval(x)
+        else:
+            nb = numer.GetBinContent(bin)
+
+        if "TF" in str(denom):
+            db = numer.Eval(x)
+        else:
+            db = numer.GetBinContent(bin)
+
+        if r+e<rMin and nb > 0:#down arrow
             a.DrawArrow( x,rMin + (rMax-rMin)/5,  x,rMin  , 0.015,"|>")
 
-        elif r-e>rMax and denom.GetBinContent(bin) > 0:#up arrow
+        elif r-e>rMax and db > 0:#up arrow
             a.DrawArrow( x,rMax - (rMax-rMin)/5,  x,rMax  , 0.015,"|>")
             
     #ratio_TGraph.SetLineColor(ROOT.kRed)
