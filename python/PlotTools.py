@@ -666,15 +666,22 @@ def plot(sampleDictionary, plotParameters,debug=False):
         box.Draw("same l")
 
     if "legendSubText" in plotParameters:
-        i = 0
+        i = 1
         legendSubText = []
+        lstx = xleg[0] if 'lstx' not in plotParameters else plotParameters['lstx']
+        lsty = yleg[0] if 'lsty' not in plotParameters else plotParameters['lsty']
+        if 'lstLocation' in plotParameters:
+            lstLocation = plotParameters["lstLocation"]
+            if lstLocation == "right": 
+                lstx, lsty = xleg[1], yleg[1]
+                i = 1
         for line in plotParameters["legendSubText"]:
-            i += 1
-            legendSubText.append( ROOT.TLatex(xleg[0], yleg[0]-i*yspace, "#bf{ "+line+"}") )
+            legendSubText.append( ROOT.TLatex(lstx, lsty-i*yspace, "#bf{ "+line+"}") )
             legendSubText[-1].SetTextAlign(11)
             legendSubText[-1].SetTextSize((1-legend.GetEntrySeparation())*yspace)
             legendSubText[-1].SetNDC()
             legendSubText[-1].Draw()
+            i += 1
 
     hPad.Update()
     xTitleLeft  = UserToNDC(hPad, "x", hPad.GetFrame().GetX1(), debug)
