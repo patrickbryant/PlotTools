@@ -1220,7 +1220,10 @@ def read_parameter_file(inFileName):
             print "Cannot parse",line
             continue
 
-        outputDict[words[0]] = float(words[1])
+        try:
+            outputDict[words[0]] = float(words[1])
+        except ValueError:
+            outputDict[words[0]] = words[1]
     return outputDict
 
 
