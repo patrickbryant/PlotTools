@@ -862,7 +862,7 @@ def ratio(rPad, numer, denom, rMin, rMax, rTitle, rColor, lColor, ratioTObjects=
         x  = ROOT.Double(numer.GetBinCenter(bin))
         nc = numer.GetBinContent(bin)
         ne = numer.GetBinError(bin)
-        if "TH" in str(denom):
+        if "TH" in str(type(denom)):
             dc = denom.GetBinContent(bin)
             de = denom.GetBinError(bin)
         else:
