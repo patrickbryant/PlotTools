@@ -17,7 +17,7 @@ ROOT.gErrorIgnoreLevel = ROOT.kWarning
 import PlotTools
 
 def subscript(text, lower=0.5,scale=0.5):
-    return '#lower[%f]{#scale[%f]{%s}}'%(text, lower, scale)
+    return '#lower[%f]{#scale[%f]{%s}}'%(lower, scale, text)
 
 def get(rootFile, path):
     try:
@@ -112,12 +112,14 @@ def plot(sampleDictionary, plotParameters,debug=False):
     except: pass
 
     canvas = ROOT.TCanvas("canvas", "canvas", int(canvasSize[0]), int(canvasSize[1]))
+    rPadFraction = plotParameters.get('rPadFraction', 0.3)
+    hPadFraction = 1-rPadFraction
     if ratio:
         if not ratioOnly:
-            rPad = ROOT.TPad("ratio", "ratio", 0, 0.0, 1, 0.3)
+            rPad = ROOT.TPad("ratio", "ratio", 0, 0.0, 1, rPadFraction)
             ROOT.gPad.SetTicks(1,1)
-            rPad.SetBottomMargin(0.30)
-            rPad.SetTopMargin(0.035)
+            rPad.SetBottomMargin(0.09/rPadFraction)
+            rPad.SetTopMargin(0.035*0.3/rPadFraction)
             rPad.SetRightMargin(0.03)
             rPad.SetFillStyle(0)
             rPad.Draw()
@@ -128,10 +130,10 @@ def plot(sampleDictionary, plotParameters,debug=False):
             rPad.SetRightMargin(0.03)
             rPad.Draw()
 
-        hPad = ROOT.TPad("hist",  "hist",  0, 0.3, 1, 1.0)
+        hPad = ROOT.TPad("hist",  "hist",  0, rPadFraction, 1, 1.0)
         ROOT.gPad.SetTicks(1,1)
-        hPad.SetBottomMargin(0.02)
-        hPad.SetTopMargin(0.05)
+        hPad.SetBottomMargin(0.02*0.7/hPadFraction)
+        hPad.SetTopMargin(0.05*0.7/hPadFraction)
         hPad.SetRightMargin(0.03)
         hPad.Draw()
     else:
@@ -293,7 +295,7 @@ def plot(sampleDictionary, plotParameters,debug=False):
                             
             nObjects += 1
 
-            drawOptions = thisSample["drawOptions"] if "drawOptions" in thisSample else ""
+            drawOptions = thisSample.get("drawOptions", '')# if "drawOptions" in thisSample else ""
             if drawOptions == "COLZ": hPad.SetRightMargin(0.12)
 
             try:
@@ -415,7 +417,7 @@ def plot(sampleDictionary, plotParameters,debug=False):
             # if hist has an associated stack order, move it to stack dictionary for later stacking
             if "stack" in thisSample:
                 stack[thisSample["stack"]] = hists[f][p]
-                stackDrawOptions = thisSample["drawOptions"] if "drawOptions" in thisSample else ""
+                stackDrawOptions = thisSample.get("drawOptions", '')# if "drawOptions" in thisSample else ""
                 if "ratio" in thisSample: stackRatio = thisSample["ratio"]
             elif hists[f][p].InheritsFrom("TH1"):
                 isData = False
@@ -424,7 +426,7 @@ def plot(sampleDictionary, plotParameters,debug=False):
                         isData = True
                         f_data = f
                         p_data = p
-                        h_data_draw = " ex0 PE "+drawOptions
+                        h_data_draw = "P ex0 "+drawOptions
                 if not isData:
                     notStacked.append((hists[f][p], thisSample))
                 
@@ -527,14 +529,14 @@ def plot(sampleDictionary, plotParameters,debug=False):
 
     errorsNotStacked = []
     for h, sample in notStacked:
-        errorsNotStacked.append(h.Clone(h.GetName()+'_errors'))
-        errorsNotStacked[-1].SetFillColorAlpha(eval(sample['color']), 0.5)
-        errorsNotStacked[-1].SetFillStyle(3245)
-        #errorsNotStacked[-1].SetLineStyle(1)
-        #errorsNotStacked[-1].SetLineWidth(0)
-        errorsNotStacked[-1].SetMarkerColorAlpha(0, 0)
-        #errorsNotStacked[-1].SetLineColor(ROOT.kWhite)
-        errorsNotStacked[-1].Draw('e2 same')
+        totalError = 0
+        for bin in range(1,h.GetSize()-2): totalError += h.GetBinError(bin)
+        if totalError == 0: continue # prevents bug where hists with zero error are drawn with fill everywhere instead of just for error bars
+        errorsNotStacked.append((h.Clone(h.GetName()+'_errors'), sample))
+        errorsNotStacked[-1][0].SetFillColorAlpha(eval(sample['color']), 0.5)
+        errorsNotStacked[-1][0].SetFillStyle(3245)
+        errorsNotStacked[-1][0].SetMarkerColorAlpha(0, 0)
+        errorsNotStacked[-1][0].Draw('e2 same')
 
     #draw hists that are not data or stacked
     hPad.cd()
@@ -546,7 +548,7 @@ def plot(sampleDictionary, plotParameters,debug=False):
                 if "isData" in thisSample:
                     if thisSample["isData"]:
                         continue
-                drawOptions = thisSample["drawOptions"] if "drawOptions" in thisSample else "HIST "
+                drawOptions = thisSample.get("drawOptions", 'HIST ')# if "drawOptions" in thisSample else "HIST "
                 if not ratioOnly: 
                     if debug: print("hists["+f+"]["+p+"].Draw("+drawOptions+same+")")
                     #if "HIST P" in drawOptions: hists[f][p].Draw("HIST"+same) ## NEED THIS FOR SINGLE BIN ACCEPTANCE PLOTS...
@@ -575,9 +577,9 @@ def plot(sampleDictionary, plotParameters,debug=False):
         ratioDictionary = {"numer":{},"denom":{}}
         if stackRatio: 
             if "numer" in stackRatio:
-                ratioDictionary["numer"][stackRatio.replace("numer","")] = [stacked.GetStack().Last()]
+                ratioDictionary["numer"][stackRatio.replace("numer","")] = [(stacked.GetStack().Last(), {})]
             if "denom" in stackRatio:
-                ratioDictionary["denom"][stackRatio.replace("denom","")] = [stacked.GetStack().Last()]
+                ratioDictionary["denom"][stackRatio.replace("denom","")] = [(stacked.GetStack().Last(), {})]
 
             #for differential distributions in bottom pad
             if "signal" in stackRatio:
@@ -592,14 +594,14 @@ def plot(sampleDictionary, plotParameters,debug=False):
                     histRatio = thisSample["ratio"]
                     if "numer" in histRatio:
                         if histRatio.replace("numer","") in ratioDictionary["numer"]:
-                            ratioDictionary["numer"][histRatio.replace("numer","")].append(hists[f][p])
+                            ratioDictionary["numer"][histRatio.replace("numer","")].append((hists[f][p], thisSample))
                         else:
-                            ratioDictionary["numer"][histRatio.replace("numer","")] = [hists[f][p]]
+                            ratioDictionary["numer"][histRatio.replace("numer","")] = [(hists[f][p], thisSample)]
                     if "denom" in histRatio:
                         if histRatio.replace("denom","") in ratioDictionary["denom"]:
-                            ratioDictionary["denom"][histRatio.replace("denom","")].append(hists[f][p])
+                            ratioDictionary["denom"][histRatio.replace("denom","")].append((hists[f][p], thisSample))
                         else:
-                            ratioDictionary["denom"][histRatio.replace("denom","")] = [hists[f][p]]
+                            ratioDictionary["denom"][histRatio.replace("denom","")] = [(hists[f][p], thisSample)]
                         #ratioDictionary["denom"][histRatio.replace("denom","")] = hists[f][p]
 
                     #differential distributions
@@ -619,16 +621,16 @@ def plot(sampleDictionary, plotParameters,debug=False):
                 print(ratioDictionary["denom"][ratioSet])
                 print(ratioDictionary["numer"][ratioSet])
                 continue #don't know how to handle this yet..
-            for denom in ratioDictionary["denom"][ratioSet]:
+            for denom, denomSample in ratioDictionary["denom"][ratioSet]:
                 #denom = ratioDictionary["denom"][ratioSet]
-                for numer in ratioDictionary["numer"][ratioSet]:
+                for numer, numerSample in ratioDictionary["numer"][ratioSet]:
                     if denomColors: lColor = denom.GetLineColor()
                     else:           lColor = numer.GetLineColor()
 
                     if not th2Ratio:
                         ratioErrors = plotParameters["ratioErrors"] if "ratioErrors" in plotParameters else True
                         doSignificance = True if "significance" in plotParameters["ratio"] else False
-                        rErrors = PlotTools.ratio(rPad, numer, denom, rMin, rMax, rTitle, rColor, lColor, ratioTObjects, ratioErrors, doSignificance,plotParameters)
+                        rErrors = PlotTools.ratio(rPad, numer, denom, rMin, rMax, rTitle, rColor, lColor, ratioTObjects, ratioErrors, doSignificance,plotParameters, numerSample, denomSample)
                     else:
                         hPad.cd()
                         try:
@@ -656,16 +658,17 @@ def plot(sampleDictionary, plotParameters,debug=False):
     drawLegend = False
     drawOrder = {}
     legendEntries=[]
-    samplesNotStacked = [hs[1] for hs in notStacked]
+    samplesNotStacked = [hs[1] for hs in errorsNotStacked]
     for f in sampleDictionary:
         for p in sampleDictionary[f]:
             thisHist = hists[f][p]
             thisSample = sampleDictionary[f][p]
             try:
-                thisHist = errorsNotStacked[samplesNotStacked.index(thisSample)]
+                thisHist = errorsNotStacked[samplesNotStacked.index(thisSample)][0]
                 legendMark = 'fl'
             except ValueError:
-                thisHist = hists[f][p]
+                #thisHist = hists[f][p]
+                legendMark = 'l'
 
             if "stack" in thisSample:
                 legendMark = "f"
@@ -773,35 +776,38 @@ def plot(sampleDictionary, plotParameters,debug=False):
     hPad.Update()
     xTitleLeft  = UserToNDC(hPad, "x", hPad.GetFrame().GetX1(), debug)
     xTitleRight = UserToNDC(hPad, "x", hPad.GetFrame().GetX2(), debug)
-    yTitleLeft  = UserToNDC(hPad, "y", hPad.GetFrame().GetY2(), debug) + 0.007
+    yTitleLeft  = UserToNDC(hPad, "y", hPad.GetFrame().GetY2(), debug) + 0.007*0.7/hPadFraction
     if debug: print("xTitleLeft",xTitleLeft,"yTitleLeft",yTitleLeft)
 
     try:
         plotParameters["titleLeft"]
-        if "xTitleLeft" in plotParameters: xTitleLeft = plotParameters["xTitleLeft"]
-        if "yTitleLeft" in plotParameters: yTitleLeft = plotParameters["yTitleLeft"]
+        xTitleLeft = plotParameters.get('xTitleLeft', xTitleLeft)
+        yTitleLeft = plotParameters.get('yTitleLeft', yTitleLeft)
         titleLeft  = ROOT.TLatex(xTitleLeft, yTitleLeft, "#bf{"+plotParameters["titleLeft"]+"}")
         titleLeft.SetTextAlign(11)
+        titleLeft.SetTextSize(0.05*0.7/hPadFraction)
         titleLeft.SetNDC()
         titleLeft.Draw()
     except: pass
 
     try:
         plotParameters["titleCenter"]
-        xTitleCenter = 0.5   if "xTitleCenter" not in plotParameters else plotParameters["xTitleCenter"]
-        yTitleCenter = yTitleLeft if "yTitleCenter" not in plotParameters else plotParameters["yTitleCenter"]
+        xTitleCenter = plotParameters.get('xTitleCenter', 0.5)
+        yTitleCenter = plotParameters.get('yTitleCenter', yTitleLeft)
         titleCenter  = ROOT.TLatex(xTitleCenter, yTitleCenter, "#bf{"+plotParameters["titleCenter"]+"}")
         titleCenter.SetTextAlign(21)
+        titleCenter.SetTextSize(0.05*0.7/hPadFraction)
         titleCenter.SetNDC()
         titleCenter.Draw()
     except: pass
 
     try:
         plotParameters["titleRight"]
-        if "xTitleRight" in plotParameters: xTitleRight = plotParameters["xTitleRight"]
-        yTitleRight = yTitleLeft if "yTitleRight" not in plotParameters else plotParameters["yTitleRight"]
+        xTitleRight = plotParameters.get('xTitleRight', xTitleRight)
+        yTitleRight = plotParameters.get('yTitleRight', yTitleLeft)
         titleRight  = ROOT.TLatex(xTitleRight, yTitleRight, "#bf{"+plotParameters["titleRight"]+"}")
         titleRight.SetTextAlign(31)
+        titleRight.SetTextSize(0.05*0.7/hPadFraction)
         titleRight.SetNDC()
         titleRight.Draw()
     except: pass
@@ -916,7 +922,7 @@ def show_overflow(hist):
         hist.SetBinError  (nbins, newerror)
 
 #   ratio(rPad, numer, denom, rMin, rMax, rTitle, rColor, lColor, ratioTObjects,   ratioErrors,     doSignificance,        plotParameters)
-def ratio(rPad, numer, denom, rMin, rMax, rTitle, rColor, lColor, ratioTObjects=[],ratioErrors=True, doSignificance=False, plotParameters=None, drawOptions=None):
+def ratio(rPad, numer, denom, rMin, rMax, rTitle, rColor, lColor, ratioTObjects=[],ratioErrors=True, doSignificance=False, plotParameters=None, numerSample=None, denomSample=None, drawOptions=None):
     ratioOnly = plotParameters.get("ratioOnly", False)
     logX      = plotParameters.get("logX",      False)
 
@@ -975,9 +981,10 @@ def ratio(rPad, numer, denom, rMin, rMax, rTitle, rColor, lColor, ratioTObjects=
 
         if doSignificance:
             #val_nd = (nc-dc)/(abs(dc)+de**2)**0.5 if (abs(dc)+de**2)>0 else 0
-            val_nd = (nc-dc)/(ne**2+de**2)**0.5 if (ne**2+de**2)>0 else 0
-            val_dd = 0.0
-            err_nd = 0.0
+            total_err = (ne**2+de**2)**0.5
+            val_nd = (nc-dc)/total_err if total_err>0 else 0
+            val_dd = de/total_err if total_err>0 else 0
+            err_nd = ne/total_err if total_err>0 else 0
             err_dd = de/dc**0.5 if dc>0 else 0
 
         true_r[bin] = val_nd
@@ -989,7 +996,7 @@ def ratio(rPad, numer, denom, rMin, rMax, rTitle, rColor, lColor, ratioTObjects=
         #ratio_TGraph.SetPoint(bin-1,x,r)
         #ratio_TGraph.SetPointError(bin-1,ROOT.Double(0),ROOT.Double(0),r_down,r_up)
 
-
+    rPadFraction = plotParameters.get('rPadFraction', 0.3)
     setStyle(ratio_hist)
     setStyle(denomerror)
     if not ratioOnly:
@@ -997,6 +1004,11 @@ def ratio(rPad, numer, denom, rMin, rMax, rTitle, rColor, lColor, ratioTObjects=
         denomerror.GetYaxis().SetLabelOffset(0.015)
         ratio_hist.GetYaxis().SetTitleOffset(0.95 if (rMax*100)%100 == 0 else 1.1)
         denomerror.GetYaxis().SetTitleOffset(0.95 if (rMax*100)%100 == 0 else 1.1)
+        # print('rPadFraction',rPadFraction)
+        # print('ratio_hist.GetTitleOffset()',ratio_hist.GetTitleOffset())
+        # print('denomerror.GetTitleOffset()',denomerror.GetTitleOffset())
+        ratio_hist.GetXaxis().SetTitleOffset(0.9/rPadFraction)
+        denomerror.GetXaxis().SetTitleOffset(0.9/rPadFraction)
         ratio_hist.GetXaxis().SetTitleSize(25)
         denomerror.GetXaxis().SetTitleSize(25)
     if ratioOnly:
@@ -1033,7 +1045,12 @@ def ratio(rPad, numer, denom, rMin, rMax, rTitle, rColor, lColor, ratioTObjects=
     if drawOptions:
         ratio_hist.Draw(drawOptions+' SAME')
     else:
-        ratio_hist.Draw("x0 P E0 SAME" if not doSignificance else "HIST SAME")
+        if   'ratioDrawOptions' in numerSample:
+            ratio_hist.Draw(numerSample['ratioDrawOptions']+" SAME")
+        elif 'ratioDrawOptions' in denomSample:
+            ratio_hist.Draw(denomSample['ratioDrawOptions']+" SAME")
+        else:
+            ratio_hist.Draw("x0 P E0 SAME" if not doSignificance else "HIST SAME")
     # else:
     #    ratio_hist.Draw("HIST SAME")
 
@@ -1343,6 +1360,8 @@ def read_parameter_file(inFileName):
 def setStyle(h,ratio=False,plotParameters={}):
     ratioOnly = plotParameters.get("ratioOnly", False)
     logX      = plotParameters.get("logX",      False)
+    rPadFraction = plotParameters.get('rPadFraction', 0.3)
+    hPadFraction = 1-rPadFraction
     h.SetLineWidth(2)
     ROOT.gPad.SetTicks(1,1)
     ROOT.gPad.Update()
