@@ -529,6 +529,7 @@ def plot(sampleDictionary, plotParameters,debug=False):
 
     errorsNotStacked = []
     for h, sample in notStacked:
+        if h.InheritsFrom("TH2"): continue
         totalError = 0
         for bin in range(1,h.GetSize()-2): totalError += h.GetBinError(bin)
         if totalError == 0: continue # prevents bug where hists with zero error are drawn with fill everywhere instead of just for error bars
@@ -550,7 +551,7 @@ def plot(sampleDictionary, plotParameters,debug=False):
                         continue
                 drawOptions = thisSample.get("drawOptions", 'HIST ')# if "drawOptions" in thisSample else "HIST "
                 if not ratioOnly: 
-                    if debug: print("hists["+f+"]["+p+"].Draw("+drawOptions+same+")")
+                    # if debug: print("hists["+f+"]["+p+"].Draw("+drawOptions+same+")")
                     #if "HIST P" in drawOptions: hists[f][p].Draw("HIST"+same) ## NEED THIS FOR SINGLE BIN ACCEPTANCE PLOTS...
                     hists[f][p].Draw(drawOptions+same)
                     same=" SAME "
