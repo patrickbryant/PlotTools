@@ -443,7 +443,7 @@ def plot(sampleDictionary, plotParameters,debug=False):
                         hists[f][p].SetRange(thisSample["xMin"],thisSample["xMax"])
                 if "pad" in thisSample:
                     if "rPad" in thisSample["pad"]:
-                        ratioTObjects.append(hists[f][p])
+                        ratioTObjects.append({'TObject':hists[f][p], 'sample':thisSample})
                     if not ratioOnly: 
                         if debug: print("hists["+f+"]["+p+"].Draw("+drawOptions+")")
                         otherObjects.append({'object':hists[f][p], 'drawOptions':drawOptions})
@@ -530,10 +530,12 @@ def plot(sampleDictionary, plotParameters,debug=False):
     errorsNotStacked = []
     for h, sample in notStacked:
         if h.InheritsFrom("TH2"): continue
+        if not sample.get('errorBands', True): continue
         totalError = 0
         for bin in range(1,h.GetSize()-2): totalError += h.GetBinError(bin)
         if totalError == 0: continue # prevents bug where hists with zero error are drawn with fill everywhere instead of just for error bars
         errorsNotStacked.append((h.Clone(h.GetName()+'_errors'), sample))
+        errorsNotStacked[-1][0].SetLineColorAlpha(eval(sample['color']), 1.0)
         errorsNotStacked[-1][0].SetFillColorAlpha(eval(sample['color']), 0.5)
         errorsNotStacked[-1][0].SetFillStyle(3245)
         errorsNotStacked[-1][0].SetMarkerColorAlpha(0, 0)
@@ -551,7 +553,7 @@ def plot(sampleDictionary, plotParameters,debug=False):
                         continue
                 drawOptions = thisSample.get("drawOptions", 'HIST ')# if "drawOptions" in thisSample else "HIST "
                 if not ratioOnly: 
-                    # if debug: print("hists["+f+"]["+p+"].Draw("+drawOptions+same+")")
+                    if debug: print("hists[f][p].Draw("+drawOptions+same+")")
                     #if "HIST P" in drawOptions: hists[f][p].Draw("HIST"+same) ## NEED THIS FOR SINGLE BIN ACCEPTANCE PLOTS...
                     hists[f][p].Draw(drawOptions+same)
                     same=" SAME "
@@ -689,7 +691,7 @@ def plot(sampleDictionary, plotParameters,debug=False):
                 if "isData" in thisSample:
                     if thisSample["isData"]: 
                         legendMark = "ep"
-
+                        
             if "legendMark" in thisSample: legendMark = thisSample["legendMark"]
 
             if "label" in thisSample and "stack" not in thisSample:
@@ -725,6 +727,7 @@ def plot(sampleDictionary, plotParameters,debug=False):
     legend.SetTextAlign(12)
 
     for i in sorted(drawOrder.keys()):
+        if debug: print('Legend: ',legendEntries[drawOrder[i]])
         legend.AddEntry(legendEntries[drawOrder[i]][0],legendEntries[drawOrder[i]][1],legendEntries[drawOrder[i]][2])
 
     # if "stackErrors" in plotParameters and drawLegend and drawErrors:
@@ -1071,7 +1074,7 @@ def ratio(rPad, numer, denom, rMin, rMax, rTitle, rColor, lColor, ratioTObjects=
 
     for obj in ratioTObjects: 
         #obj.SetRange(ratio_hist.GetXaxis().GetXmin(), ratio_hist.GetXaxis().GetXmax())
-        obj.Draw("SAME")
+        obj['TObject'].Draw("SAME "+obj['sample'].get('drawOptions', ''))
         
     if doSignificance:
         zero = ROOT.TF1("zero","0",hist.GetXaxis().GetXmin(),hist.GetXaxis().GetXmax())
