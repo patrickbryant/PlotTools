@@ -531,6 +531,7 @@ def plot(sampleDictionary, plotParameters,debug=False):
             same="SAME "
 
     hPad.RedrawAxis()
+
     #
     # Now make ratio(s)
     #
@@ -557,6 +558,7 @@ def plot(sampleDictionary, plotParameters,debug=False):
                             ratioDictionary["numer"][histRatio.replace("numer","")].append(hists[f][p])
                         else:
                             ratioDictionary["numer"][histRatio.replace("numer","")] = [hists[f][p]]
+
                     if "denom" in histRatio:
                         if histRatio.replace("denom","") in ratioDictionary["denom"]:
                             ratioDictionary["denom"][histRatio.replace("denom","")].append(hists[f][p])
@@ -816,6 +818,7 @@ def plot(sampleDictionary, plotParameters,debug=False):
     logstr = "_logy" if logY else ""
     if debug: print "SaveAs("+plotParameters["outputDir"]+plotParameters["outputName"]+logstr+".pdf)"
     canvas.SaveAs(plotParameters["outputDir"]+plotParameters["outputName"]+logstr+".pdf")
+    canvas.SaveAs(plotParameters["outputDir"]+plotParameters["outputName"]+logstr+".C")
     #canvas.SaveAs(plotParameters["outputDir"]+plotParameters["outputName"]+".root")
 
     return canvas
